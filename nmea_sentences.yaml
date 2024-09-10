@@ -1,0 +1,123 @@
+formats:
+  aam:
+  - arrived_circle
+  - passed_waypt
+  - arrival_radius
+  - radius_units
+  - waypt_id
+  apa:
+  - ap_status
+  - ap_loran
+  - xte
+  - arrived_circle
+  - passed_waypt
+  - bearing_to_waypt
+  - waypt_id
+  apb:
+  - ap_status
+  - ap_loran
+  - xte
+  - arrived_circle
+  - passed_waypt
+  - bearing_origin_to_waypt
+  - waypt_id
+  - bearing_position_to_waypt
+  - hts
+  - ap_mode
+  dpt:
+  - dbt
+  - toff
+  hdg:
+  - n/a
+  - n/a
+  - n/a
+  - mag_var
+  hdm:
+  - hdm
+  xs1:
+  - mode        # 0 = idle, 1 = auto helm, 2 = manual steer mode
+  - hdm
+  - set_hdm
+  - hdm_diff
+  - compass_status
+  - pitch
+  - roll
+  - helm        # required helm position +/- 4096 per rotation 
+  - compass_temp
+  - auto_gain
+  - auto_pi
+  - auto_pd
+  rmc:
+  - fix_time
+  - status
+  - position
+  - sog
+  - tmg
+  - fix_date
+  - mag_var
+  - faa_mode
+  - nav_status
+  vhm:
+  - n/a
+  - n/a
+  - n/a
+  - n/a
+  - stw
+  vlw:
+  - n/a
+  - n/a
+  - wd
+  zda:
+  - datetime
+variables:
+  acir: A
+  ap_loran: A
+  ap_mode: A
+  ap_status: A
+  aper: A
+  arrival_radius: x.x
+  arrived_circle: A
+  auto_gain: x
+  auto_pi: x
+  auto_pd: x
+  bearing_origin_to_waypt: xxx,T
+  bearing_position_to_waypt: xxx,T
+  bearing_to_waypt: xxx,T
+  bod: x.x
+  bod_true: T
+  datetime: hhmmss,day,month,year,tz
+  day: DD_day
+  dbt: x.x
+  did: c--c
+  dw: x.x
+  compass_status: A
+  compass_temp: x
+  faa_mode: A
+  fix_date: ddmmyy
+  fix_time: hhmmss.ss
+  hdm: x.x,T
+  hdm_diff: -x.x
+  helm: -x
+  hts: xxx,T
+  lat: lat,NS
+  long: long,WE
+  mag_var: x.x,w
+  month: DD_month
+  mode: x
+  nav_status: A
+  passed_waypt: A
+  position: lat,NS,long,WE
+  pitch: -x
+  radius_units: A
+  roll: -x
+  set_hdm: x.x,T
+  sog: x.x
+  status: A
+  stw: x.x
+  tmg: x.x
+  toff: -x.x
+  tz: tz_h,tz_m
+  waypt_id: c--c
+  xte: x.x,R,N
+  year: DD_year
+ 

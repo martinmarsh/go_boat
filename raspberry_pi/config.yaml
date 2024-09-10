@@ -1,0 +1,61 @@
+# This is a test config see example_config.yaml for a real world example
+
+monitor:
+    type: monitor
+    server_address: 192.168.1.166:8014
+
+
+bridge:
+    name: /dev/ttyUSB1
+    type: serial
+    origin_tag: ray_
+    baud: 38400
+    input: to_2000
+    outputs:
+      - to_processor
+      - to_udp_opencpn
+
+ais:
+    name: /dev/ttyUSB3
+    type: serial
+    baud: 38400
+    outputs:
+      - to_2000
+      - to_udp_opencpn
+
+compass:
+    name: /dev/ttyUSB0
+    type: serial
+    origin_tag: cp_
+    outputs:
+      - to_processor
+      - to_udp_opencpn
+      - to_2000
+
+udp_opencpn:
+    type:  udp_client
+    input: to_udp_opencpn
+    server_address: 127.0.0.1:8011
+
+udp_compass_listen:
+    type:  udp_listen
+    origin_tag: esp_
+    outputs:
+        - to_processor
+    port: 8005
+
+main_processor:
+    type: nmea_processor # Links to any make_sentence types with processor field referring to this processor
+    input: to_processor  # NMEA data received will be stored to data base and tagged with origin prefix
+                         # if applied by the origin channel
+    log_period: 15    # zero means no log saved
+    data_retain: 15   # number of seconds before old records are removed
+    add_now_var: utc_datetime
+    datetime_tags:
+        - ray_
+        - gm_
+        - utc_
+
+
+
+      
