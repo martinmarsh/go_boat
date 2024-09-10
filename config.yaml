@@ -1,0 +1,91 @@
+# This is a test config see example_config.yaml for a real world example
+
+monitor:
+    type: monitor
+    print: on
+    server_address: 192.168.1.166:8014
+
+auto_helm:                  # define channel to be used by auto_helm code
+    type: external
+    gain: 100
+    pd: 100
+    pi: 100
+    outputs:
+        to_helm
+
+helm:
+    input: to_helm
+    type:  udp_client
+    server_address: 255.255.255.255:8005
+
+compass_sim:
+    name: com6
+    type: serial
+    input: to_compass
+
+bridge:
+    name: comy
+    type: serial
+    origin_tag: ray_
+    baud: 38400
+    input: to_2000
+    outputs:
+      - to_processor
+      - to_udp_opencpn
+
+ais:
+    name: comx
+    type: serial
+    baud: 38400
+    outputs:
+      - to_2000
+      - to_udp_opencpn
+
+compass:
+    name: com5
+    type: serial
+    origin_tag: cp_
+    outputs:
+      - to_processor
+      # - to_udp_opencpn
+      # - to_2000
+      # - to_helm
+
+udp_opencpn:
+    type:  udp_client
+    input: to_udp_opencpn
+    server_address: 127.0.0.1:8011
+
+udp_compass_listen:
+    type:  udp_listen
+    origin_tag: esp_
+    outputs:
+        - to_processor
+    port: 8005
+
+main_processor:
+    type: nmea_processor # Links to any make_sentence types with processor field referring to this processor
+    input: to_processor  # NMEA data received will be stored to data base and tagged with origin prefix
+                         # if applied by the origin channel
+    log_period: 5    # zero means no log saved
+    data_retain: 10000   # number of seconds before old records are removed
+    add_now_var: utc_datetime
+    data_parse:
+        - +@sim_@$HCHDM,172.5,M*28
+        - +@ray_@$GPAPB,A,A,5,L,N,V,V,359.,T,1,359.1,T,6,T,A*7C
+        - +@ray_@$SSDPT,2.8,-0.7
+        - +@ray_@$GPRMC,110910.59,A,5047.3986,N,00054.6007,W,0.08,0.19,150920,0.24,W,D,V*75
+    datetime_tags:
+        - ray_
+        - gm_
+        - utc_
+
+compass_make:
+    type: make_sentence
+    processor: main_processor
+    every: 200
+    use_origin_tag: sim_  
+    sentence: hdm
+    prefix: HD
+    outputs:
+        - to_compass
