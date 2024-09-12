@@ -2,7 +2,7 @@ module github.com/martinmarsh/go_boat
 
 go 1.21.6
 
-require github.com/martinmarsh/nmea-mux v0.1.9
+require github.com/martinmarsh/nmea-mux v1.0.1
 
 require (
 	github.com/creack/goselect v0.1.2 // indirect

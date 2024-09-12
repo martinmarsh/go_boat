@@ -2,8 +2,14 @@
 
 monitor:
     type: monitor
-    server_address: 192.168.1.166:8014
-
+    print: on       # turns standard output on or off
+    udp: off         # turns udp reporting on or off
+    server_address: 192.168.1.166:8014   # address and post 255.255.255.255 for broadcast
+    report:
+        - parse      # reports each sentence parsed to data
+        - data_log   # reports each log data write
+        - device     # allow reports from each device which has report set
+ 
 
 bridge:
     name: /dev/ttyUSB1

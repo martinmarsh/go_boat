@@ -50,14 +50,10 @@ func start(mux *nmea_mux.NmeaMux){
 	nmea_data.last_mode = "0"
 	helm_ticker := time.NewTicker(500 * time.Millisecond)
 
-	to_helm := mux.channels["to_helm"]
-	
-	fmt.Printf("Mux: %s \n", mux)
-
 	for {
 		select {
-	    case str := <- to_helm:
-			fmt.Printf("to helm %s \n", str)
+	    //case str := <- to_helm:
+			//fmt.Printf("to helm %s \n", str)
 		case <-helm_ticker.C:
 			computeHelm(&nmea_data, mux)
 		}
@@ -66,13 +62,13 @@ func start(mux *nmea_mux.NmeaMux){
 
 
 func computeHelm(d *nmeaData, mux *nmea_mux.NmeaMux ){
+	//to_helm := mux.Channels["to_helm"]
 	getNmeaData(d, mux)
 	d.pd = d.pd/120
 	if(d.pd > 1){
 		d.pd = 1
 	}
 
-	fmt.Printf("data: %s \n", d)
 	fmt.Printf("data.mode: %s \n", d.mode)
 	fmt.Printf("data.pi: %4.2f \n", d.pi)
 	
@@ -93,7 +89,7 @@ func computeHelm(d *nmeaData, mux *nmea_mux.NmeaMux ){
 
 			helm_pos := (error + d.integral - change*d.pd) * d.gain * 3
 			fmt.Printf("helm: %5.1f \n", helm_pos)
-			to_helm <- helm_pos
+			//to_helm <- helm_pos
 
 		}
 
