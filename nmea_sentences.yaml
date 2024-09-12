@@ -47,6 +47,9 @@ formats:
   - auto_gain
   - auto_pi
   - auto_pd
+  xs2:
+  - reset
+  - helm
   rmc:
   - fix_time
   - status
@@ -109,6 +112,7 @@ variables:
   position: lat,NS,long,WE
   pitch: -x
   radius_units: A
+  reset: x
   roll: -x
   set_hdm: x.x,T
   sog: x.x
