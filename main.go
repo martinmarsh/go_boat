@@ -57,6 +57,7 @@ func start(mux *nmea_mux.NmeaMux){
 	all_channels := &mux.Channels
  
 	config := mux.Config.Values["auto_helm"]
+	
 	nmea_data.pd, _ = getFloat32(100.0, config["pd"][0], 0, true)
 	nmea_data.pi, _ = getFloat32(100.0, config["pi"][0], 0, true)
 	nmea_data.gain, _ = getFloat32(100.0, config["gain"][0], 0, true)

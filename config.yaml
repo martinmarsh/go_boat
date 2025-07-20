@@ -6,7 +6,7 @@ monitor:
     udp: off         # turns udp reporting on or off
     server_address: 192.168.1.166:8014   # address and post 255.255.255.255 for broadcast
     report:
-        - parse      # reports each sentence parsed to data
+        #- parse      # reports each sentence parsed to data
         - data_log   # reports each log data write
         - device     # allow reports from each device which has report set
  
@@ -18,7 +18,7 @@ auto_helm:                  # define channel to be used by auto_helm code
     pi: 100
     pd_rate: 5
     outputs:
-        to_helm
+       - to_helm
 
 helm:
     input: to_helm
@@ -47,11 +47,21 @@ ais:
 compass:
     name: /dev/ttyUSB0
     type: serial
+    report: off
     origin_tag: cp_
     outputs:
       - to_processor
       - to_udp_opencpn
       - to_2000
+      
+garmin_gps:
+    name: /dev/ttyUSB2
+    type: serial
+    input: to_vhf
+    report: off
+    origin_tag: bk_
+    outputs:
+        - to_processor
 
 udp_opencpn:
     type:  udp_client
@@ -65,6 +75,7 @@ udp_compass_listen:
         - to_processor
     port: 8008.
 
+
 main_processor:
     type: nmea_processor # Links to any make_sentence types with processor field referring to this processor
     input: to_processor  # NMEA data received will be stored to data base and tagged with origin prefix
@@ -74,5 +85,17 @@ main_processor:
     add_now_var: utc_datetime
     datetime_tags:
         - ray_
-        - gm_
+        - bkgps_
         - utc_
+
+gps_make:
+    type: make_sentence
+    processor: main_processor
+    every: 1500
+    use_origin_tag: ray_ 
+    else_origin_tag: bk_ 
+    sentence: rmc
+    prefix: GP
+    outputs:
+        - to_vhf
+        - to_udp_opencpn
