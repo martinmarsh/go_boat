@@ -53,7 +53,6 @@ compass:
       - to_processor
       - to_udp_opencpn
       - to_2000
-      
 garmin_gps:
     name: /dev/ttyUSB2
     type: serial
@@ -74,6 +73,7 @@ udp_compass_listen:
     outputs:
         - to_processor
     port: 8008.
+
 
 
 main_processor:
