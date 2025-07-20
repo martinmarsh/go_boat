@@ -26,7 +26,6 @@ helm:
     report: on
     server_address: 255.255.255.255:8005
 
-
 bridge:
     name: /dev/ttyUSB1
     type: serial
@@ -54,7 +53,7 @@ compass:
       - to_processor
       - to_udp_opencpn
       - to_2000
-
+      
 garmin_gps:
     name: /dev/ttyUSB2
     type: serial
@@ -72,10 +71,9 @@ udp_opencpn:
 udp_compass_listen:
     type:  udp_listen
     origin_tag: esp_
-    report: off
     outputs:
         - to_processor
-    port: 8008
+    port: 8008.
 
 
 main_processor:
@@ -101,4 +99,3 @@ gps_make:
     outputs:
         - to_vhf
         - to_udp_opencpn
-
