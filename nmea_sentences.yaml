@@ -48,6 +48,12 @@ formats:
   xs2:
   - reset
   - helm
+  xs3:
+  - head
+  - head_to_way
+  - auto_gain
+  - auto_pi
+  - auto_pd
   rmc:
   - fix_time
   - status
@@ -96,6 +102,8 @@ variables:
   faa_mode: A
   fix_date: ddmmyy
   fix_time: hhmmss.ss
+  head: x
+  head_to_way: x
   hdm: x.x,T
   hdm_diff: -x.x
   helm: -x

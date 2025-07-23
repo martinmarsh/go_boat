@@ -6,25 +6,35 @@ monitor:
     udp: off         # turns udp reporting on or off
     server_address: 192.168.1.166:8014   # address and post 255.255.255.255 for broadcast
     report:
-        #- parse      # reports each sentence parsed to data
+        - parse      # reports each sentence parsed to data
         - data_log   # reports each log data write
         - device     # allow reports from each device which has report set
  
 
 auto_helm:                  # define channel to be used by auto_helm code
-    type: external
-    gain: 100
-    pd: 100
-    pi: 100
-    pd_rate: 5
+    type: external          # external to core mux - add on in main go file
+    gain: 40
+    pd: 1
+    pi: 1
     outputs:
        - to_helm
 
-helm:
+hand_controller:               # define config for portable compass/hand contoller interface
+    type: external          # external to mux
+    outputs:
+        - to_hand_control
+
+helm_udp:
     input: to_helm
     type:  udp_client
     report: on
     server_address: 255.255.255.255:8005
+
+hand_control:
+    input: to_hand_control
+    type:  udp_client
+    report: on
+    server_address: 255.255.255.255:8012
 
 bridge:
     name: /dev/ttyUSB1
@@ -53,6 +63,7 @@ compass:
       - to_processor
       - to_udp_opencpn
       - to_2000
+
 garmin_gps:
     name: /dev/ttyUSB2
     type: serial
@@ -72,17 +83,20 @@ udp_compass_listen:
     origin_tag: esp_
     outputs:
         - to_processor
-    port: 8008.
-
-
+    port: 8008
 
 main_processor:
     type: nmea_processor # Links to any make_sentence types with processor field referring to this processor
     input: to_processor  # NMEA data received will be stored to data base and tagged with origin prefix
                          # if applied by the origin channel
     log_period: 5     # zero means no log saved
-    data_retain: 10   # number of seconds before old records are removed
+    data_retain: 1000   # number of seconds before old records are removed
     add_now_var: utc_datetime
+    data_parse:
+        - +@cp_@$HCHDM,172.5,M*28
+        - +@ray_@$GPAPB,A,A,5,L,N,V,V,359.,T,1,359.1,T,6,T,A*7C
+        - +@ray_@$SSDPT,2.8,-0.7
+        - +@ray_@$GPRMC,110910.59,A,5047.3986,N,00054.6007,W,0.08,0.19,150920,0.24,W,D,V*75
     datetime_tags:
         - ray_
         - bkgps_
@@ -99,3 +113,4 @@ gps_make:
     outputs:
         - to_vhf
         - to_udp_opencpn
+

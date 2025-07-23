@@ -14,9 +14,10 @@ func main() {
 	// optional parameters define folder, filename, format, "config as a string
 	if err := mux.LoadConfig(); err == nil {
 		mux.Run()        // Run the virtual devices / go tasks
-		go start(mux)
+		ExternalFeatures(mux)
+		fmt.Println("waiting to stop")
 		mux.WaitToStop() // Wait for ever?
-
+		fmt.Println("stopped")
 	}else{
 		fmt.Println(err)
 	}
@@ -36,55 +37,95 @@ type nmeaData struct{
 	status			string
 	gain			float32
 	pd				float32
-	pd_rate			float32
 	pi 				float32
 	last_error		float32
 	integral		float32
 	last_mode		string
-	channels        map[string](chan string)
+	waypt_id		string
+    xte				float32
+	waypt_bearing	float32
+	waypt_set		bool
+	autohelm_channels		map[string](chan string)
+	handcontrol_channels	map[string](chan string)
 }
 
-func start(mux *nmea_mux.NmeaMux){
+
+func ExternalFeatures(mux *nmea_mux.NmeaMux){
 
 	nmea_data := nmeaData{}
 	nmea_data.last_error = 0
 	nmea_data.integral = 0
 	nmea_data.last_mode = "0"
 	nmea_data.head_correction = 0
-	nmea_data.channels = make(map[string](chan string))
+	nmea_data.autohelm_channels = make(map[string](chan string))
+	nmea_data.handcontrol_channels = make(map[string](chan string))
 	nmea_data.auto_on = false
+	nmea_data.xte = 0
+	nmea_data.waypt_id = ""
+	nmea_data.waypt_bearing = 0
+	nmea_data.waypt_set = false
 
 	all_channels := &mux.Channels
- 
-	config := mux.Config.Values["auto_helm"]
-	
-	nmea_data.pd, _ = getFloat32(100.0, config["pd"][0], 0, true)
-	nmea_data.pi, _ = getFloat32(100.0, config["pi"][0], 0, true)
-	nmea_data.gain, _ = getFloat32(100.0, config["gain"][0], 0, true)
-	nmea_data.pd_rate, _ = getFloat32(5.0, config["gain"][0], 0, true)
 
-	for _, v := range(config["outputs"]){
-		nmea_data.channels[v] = (*all_channels)[v]
+	// external autohelm setup
+	config, is_set := mux.Config.Values["auto_helm"]
+
+	if is_set {
+		nmea_data.pd, _ = getFloat32(100.0, config["pd"][0], 0, true)
+		nmea_data.pi, _ = getFloat32(100.0, config["pi"][0], 0, true)
+		nmea_data.gain, _ = getFloat32(100.0, config["gain"][0], 0, true)
+
+		for _, v := range(config["outputs"]){
+			nmea_data.autohelm_channels[v] = (*all_channels)[v]
+		}
+
+		go process_autohelm(&nmea_data, mux)
 	}
+
+	// external handcontrol setup
+
+	config, is_set = mux.Config.Values["hand_controller"]
 	
+	if is_set {
+		for _, v := range(config["outputs"]){
+			nmea_data.handcontrol_channels[v] = (*all_channels)[v]
+		}
+
+		go process_handcontoller(&nmea_data, mux)
+	}
+}
+
+
+func process_autohelm(d *nmeaData, mux *nmea_mux.NmeaMux){
+
 	helm_ticker := time.NewTicker(500 * time.Millisecond)
 
 	for {
-		select {
-	    //case str := <- to_helm:
-			//fmt.Printf("to helm %s \n", str)
-		case <-helm_ticker.C:
-			computeHelm(&nmea_data, mux)
-		}
+		<- helm_ticker.C
+		computeHelm(d, mux)
+	}
+}	
+
+func process_handcontoller(d *nmeaData, mux *nmea_mux.NmeaMux){
+
+	hc_ticker := time.NewTicker(1500 * time.Millisecond)
+
+	for {
+		fmt.Println("handcontroller waiting for ticker")
+		<- hc_ticker.C
+		fmt.Println("handcontroller got ticker")
+		updateController(d, mux)
+		fmt.Println("handcontroller has returned")
 	}
 }	
 
 
+
 func computeHelm(d *nmeaData, mux *nmea_mux.NmeaMux ){
 	getNmeaData(d, mux)
-	d.pd = d.pd/120
-	if(d.pd > 1){
-		d.pd = 1
+	pd := d.pd/120
+	if(pd > 1){
+		pd = 1
 	}
 	
 
@@ -102,7 +143,7 @@ func computeHelm(d *nmeaData, mux *nmea_mux.NmeaMux ){
 			if d.cp_data_ok && d.head_correction == 0 {
 				d.head_correction = relative180(d.esp_heading - d.compass_heading)
 			}
-			d.heading = relative360(d.esp_heading - d.head_correction)
+			//d.heading = relative360(d.esp_heading - d.head_correction)
 		}
 	} else {
 		d.head_correction = 0
@@ -124,13 +165,31 @@ func computeHelm(d *nmeaData, mux *nmea_mux.NmeaMux ){
 			d.integral = -15.0;
 		}
 
-		helm_pos := (course_error + d.integral - change*d.pd) * d.gain * 3
+		helm_pos := (course_error + d.integral - change*pd) * d.gain * 3
 		// fmt.Printf("helm: %5.1f \n", helm_pos)
-		str, _ := moveTo(helm_pos, d, mux)
+		str, err := moveTo(helm_pos, mux)
 		//fmt.Printf("Send 0183: %s\n", str)
-		for _, v := range(d.channels){
-			v <- str
+		if err == nil {
+			for _, v := range(d.autohelm_channels){
+				v <- str
+			}
 		}	
+	}
+}
+
+
+func updateController(d *nmeaData, mux *nmea_mux.NmeaMux ){
+	//getNmeaData(d, mux)
+	handle := mux.Processors["main_processor"].GetNmeaHandle()
+	handle.Nmea_mu.Lock()           // must lock and unlock on function end
+	defer handle.Nmea_mu.Unlock()
+
+	str, err :=handle.Nmea.WriteSentencePrefixVar("PX","xs3", "hc_")
+
+	if err == nil {
+		for _, v := range(d.handcontrol_channels){
+			v <- str
+		}
 	}
 }
 
@@ -144,6 +203,7 @@ func  relative180(dif float32) float32{
 	return dif
 }
 
+/*
 func  relative360(dif float32) float32{
 	if dif < 0 {
 		dif += 360.0
@@ -153,24 +213,30 @@ func  relative360(dif float32) float32{
 	}
 	return dif
 }
+*/
 
-func moveTo(position float32, d *nmeaData, mux *nmea_mux.NmeaMux )(string, error){
+func moveTo(position float32, mux *nmea_mux.NmeaMux )(string, error){
 	handle := mux.Processors["main_processor"].GetNmeaHandle()
-	handle.Nmea_mu.Lock()           // must lock and unlock on function end
-	defer handle.Nmea_mu.Unlock()
-	data := handle.Nmea.GetMap()
+	data := make(map[string]string)
 	data["helm_helm"] = fmt.Sprintf("%.0f", position)
 	data["helm_reset"] = "0"
+	mux.Processors["main_processor"].PutData(data)
+	handle.Nmea_mu.Lock()           // must lock and unlock on function end
+	defer handle.Nmea_mu.Unlock()
 	str, err :=handle.Nmea.WriteSentencePrefixVar("PX","xs2", "helm_")
 	return str, err
 }
 
+
+
 func getNmeaData(d *nmeaData, mux *nmea_mux.NmeaMux ){
+	//Note only one process must call this routine or a deadly embrace will occur - 
 	ok := true
-	handle := mux.Processors["main_processor"].GetNmeaHandle()
-	handle.Nmea_mu.Lock()           // must lock and unlock on function end
-	defer handle.Nmea_mu.Unlock()
-	data := handle.Nmea.GetMap()
+	//handle := mux.Processors["main_processor"].GetNmeaHandle()
+	//handle.Nmea_mu.Lock()           // must lock and unlock on function end
+	//defer handle.Nmea_mu.Unlock()
+	data := mux.Processors["main_processor"].GetData("esp_")
+	new_data := make(map[string]string)
 
 	//fmt.Printf("Nmea Data: %s \n", data)
 	d.mode = data["esp_mode"]
@@ -178,11 +244,44 @@ func getNmeaData(d *nmeaData, mux *nmea_mux.NmeaMux ){
 	d.gain, ok =  getFloat32(d.gain, data["esp_auto_gain"], 0, ok)
 	d.pi, ok = getFloat32(d.pi, data["esp_auto_pi"], 0, ok)
 	d.pd, ok = getFloat32(d.pd, data["esp_auto_pd"], 0, ok)
+
 	d.esp_heading, ok = getFloat32(d.esp_heading, data["esp_hdm"], -3, ok)	
 	d.desired_heading, ok = getFloat32(d.desired_heading, data["esp_set_hdm"], -3, ok)
 	d.esp_data_ok = ok
-	d.compass_heading, d.cp_data_ok = getFloat32(d.compass_heading, data["cp_hdm"], -3, true)	
 
+	cp_data := mux.Processors["main_processor"].GetData("cp_")
+	d.compass_heading, d.cp_data_ok = getFloat32(d.compass_heading,cp_data["cp_hdm"], -3, true)
+
+	
+	new_data["hc_auto_gain"] = strconv.FormatFloat(float64(d.gain),'f',0,32)
+	new_data["hc_auto_pi"] = strconv.FormatFloat(float64(d.pi),'f',0,32)
+	new_data["hc_auto_pd"] = strconv.FormatFloat(float64(d.pd),'f',0,32)
+	new_data["hc_head"] = strconv.FormatFloat(float64(d.compass_heading),'f',0,32)
+	new_data["hc_head_to_way"] = data["hc_head"] 
+	
+	d.waypt_set = false
+	d.waypt_id, ok = data["ray_waypt_id"]
+	if ok && len(d.waypt_id) > 0 {
+		d.waypt_set = true
+		xte_str, xte_valid := data["ray_xte"]
+		if xte_valid {
+			xte, valid_xte := getFloat32(0, xte_str[1:], -1, true)
+			if valid_xte {
+				if xte_str[0] == 'L'{
+					d.xte = -xte
+				} else {
+					d.xte = xte
+				}
+			}
+	
+		} else {
+			d.xte = 0 
+		}
+
+		d.waypt_bearing, _ = getFloat32(d.compass_heading, data["ray_bearing_position_to_waypt"], -3, true)
+		new_data["hc_head_to_way"] = strconv.FormatFloat(float64(d.waypt_bearing),'f',0,32)
+	} 
+	mux.Processors["main_processor"].PutData(new_data)
 }
 
 func getFloat32(current float32, data string, end int, e bool) (float32, bool){
