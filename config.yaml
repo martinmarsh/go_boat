@@ -14,8 +14,8 @@ monitor:
 auto_helm:                  # define channel to be used by auto_helm code
     type: external          # external to core mux - add on in main go file
     gain: 40
-    pd: 1
-    pi: 1
+    pd: 10
+    pi: 5
     outputs:
        - to_helm
 

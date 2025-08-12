@@ -51,9 +51,9 @@ formats:
   xs3:
   - head
   - head_to_way
-  - auto_gain
-  - auto_pi
-  - auto_pd
+  - conf_gain
+  - conf_pi
+  - conf_pd
   rmc:
   - fix_time
   - status
@@ -87,6 +87,9 @@ variables:
   auto_gain: x
   auto_pi: x
   auto_pd: x
+  conf_gain: x
+  conf_pi: x
+  conf_pd: x
   bearing_origin_to_waypt: xxx,T
   bearing_position_to_waypt: xxx,T
   bearing_to_waypt: xxx,T

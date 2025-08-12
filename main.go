@@ -38,6 +38,10 @@ type nmeaData struct{
 	gain			float32
 	pd				float32
 	pi 				float32
+	conf_gain		float32
+	conf_pd			float32
+	conf_pi 		float32
+
 	last_error		float32
 	integral		float32
 	last_mode		string
@@ -71,9 +75,13 @@ func ExternalFeatures(mux *nmea_mux.NmeaMux){
 	config, is_set := mux.Config.Values["auto_helm"]
 
 	if is_set {
-		nmea_data.pd, _ = getFloat32(100.0, config["pd"][0], 0, true)
-		nmea_data.pi, _ = getFloat32(100.0, config["pi"][0], 0, true)
-		nmea_data.gain, _ = getFloat32(100.0, config["gain"][0], 0, true)
+		nmea_data.conf_pd, _ = getFloat32(100.0, config["pd"][0], 0, true)
+		nmea_data.conf_pi, _ = getFloat32(100.0, config["pi"][0], 0, true)
+		nmea_data.conf_gain, _ = getFloat32(100.0, config["gain"][0], 0, true)
+		nmea_data.gain = nmea_data.conf_gain
+		nmea_data.pi = nmea_data.conf_pi
+		nmea_data.pd = nmea_data.conf_pd
+	
 
 		for _, v := range(config["outputs"]){
 			nmea_data.autohelm_channels[v] = (*all_channels)[v]
@@ -253,6 +261,10 @@ func getNmeaData(d *nmeaData, mux *nmea_mux.NmeaMux ){
 	d.compass_heading, d.cp_data_ok = getFloat32(d.compass_heading,cp_data["cp_hdm"], -3, true)
 
 	
+	
+	new_data["hc_conf_gain"] = strconv.FormatFloat(float64(d.conf_gain),'f',0,32)
+	new_data["hc_conf_pi"] = strconv.FormatFloat(float64(d.conf_pi),'f',0,32)
+	new_data["hc_conf_pd"] = strconv.FormatFloat(float64(d.conf_pd),'f',0,32)
 	new_data["hc_auto_gain"] = strconv.FormatFloat(float64(d.gain),'f',0,32)
 	new_data["hc_auto_pi"] = strconv.FormatFloat(float64(d.pi),'f',0,32)
 	new_data["hc_auto_pd"] = strconv.FormatFloat(float64(d.pd),'f',0,32)
